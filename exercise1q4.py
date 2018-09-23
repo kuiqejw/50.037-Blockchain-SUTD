@@ -13,16 +13,19 @@ receiver = ecdsa.SigningKey.generate()
 receivervk = receiver.get_verifying_key()
 sig = receiver.sign(b"message")
 receivervk.verify(sig, b"message") # True
+#Determine the receiver, sender key
 class Transaction:
 
-    def __init__(self, sender, receiver, amount, comment, private_key):
+    def __init__(self, sender, receiver, amount, comment):
         # Instantiates object from passed values
         self.sender = sender #public key
         self.receiver = receiver #public key
         self.amount = amount
         self.comment = comment
         self.signature = ""
-        self.sk = private_key
+        self.sign()
+
+
 
     def to_json(self):
         # Serializes object to JSON string
@@ -32,7 +35,8 @@ class Transaction:
         dicty['receiver'] = self.receiver.to_string().hex()
         dicty['amount'] = str(self.amount)
         dicty['comment'] = self.comment
-        dicty['signature'] = str(self.signature)
+        dicty['signature'] = str(self.signature.hex())
+        print(dicty['signature'])
         return json.dumps(dicty)
         # return json.dumps(self, default = lambda o: o.__dict__, sort_keys=True, indent=4)
 
@@ -41,8 +45,8 @@ class Transaction:
         tran = json.loads(data)
         print(tran)
         #since sender, and receiver public key is known
-        cls2 = Transaction(sendervk,receivervk, tran['amount'], tran['comment'], tran['signature']) 
-        cls2.signature = tran['signature']
+        cls2 = Transaction(sendervk,receivervk, tran['amount'], tran['comment']) 
+        cls2.signature = bytes.fromhex(tran['signature'])
         return cls2
 
     def sign(self):
@@ -53,10 +57,8 @@ class Transaction:
 
     def validate(self):
         # Validate transaction correctness.
-        # Can be called within from_json()
         tuccy = self.sender.to_string().hex()+self.receiver.to_string().hex()+str(self.amount)+self.comment
         #cleared the signature
-        self.signature = sender.sign(str.encode(tuccy))
         print(sendervk.verify(self.signature,str.encode(tuccy)))
         
 
@@ -66,7 +68,7 @@ class Transaction:
 
 ##TEST##
 #Sender creates a transaction
-a = Transaction(sendervk,receivervk,80,"no", sender)#sender = private key, sendervk = sender public key, receiver vk = receiver public key
+a = Transaction(sendervk,receivervk,80,"no")#sender = private key, sendervk = sender public key, receiver vk = receiver public key
 tran1 = a.to_json()
 p = a.from_json(tran1)
 p.validate()
