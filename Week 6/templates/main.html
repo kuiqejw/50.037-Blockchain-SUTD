@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Main Page</title>
+</head>
+<body>
+    <p>Log in:</p>
+    <form action="/login" method="post">
+        <div>
+            <label for="pub_key">Public Key:</label>
+            <input type="text" id="pub_key" name="pub_key">
+        </div>
+        <div>
+            <label for="priv_key">Private Key:</label>
+            <input type="text" id="priv_key" name="priv_key">
+        </div>
+        <div>
+            <button type="submit">Log in/Change user</button>
+        </div>
+    </form>
+
+    <form action="/new" method="get">
+        <div>
+            <button type="submit">Sign up as new user</button>
+        </div>
+    </form>
+</body>
+</html>

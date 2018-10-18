@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Page</title>
+</head>
+<body>
+    <p>New Transaction:</p>
+    <form action="/pay" method="post">
+        <div>
+            <label for="pub_key">Paying to:</label>
+            <input type="text" id="pub_key" name="pub_key">
+        </div>
+        <div>
+            <label for="amount">Amount:</label>
+            <input type="text" id="amount" name="amount">
+        </div>
+        <div>
+            <label for="comment">Comment:</label>
+            <input type="text" id="comment" name="comment">
+        </div>
+        <div>
+            <button type="submit">Pay!</button>
+        </div>
+    </form>
+
+</body>
+</html>
