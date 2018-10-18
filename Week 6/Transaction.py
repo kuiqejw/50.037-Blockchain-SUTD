@@ -16,8 +16,10 @@ class Transaction:
         # self.timestamp = datetime.now()
         self.nonce = self.make_nonce()# nonce 
         self.signature = ""
-
-
+        self.sender_str = sender.to_string().hex()
+        self.recevier_str = receiver.to_string().hex()
+    def __repr__(self): #used for debugging without print, __repr__ > __str__
+        return "Transaction<sender: %s>, <receiver: %s> , <amount: %s>, <nonce: %i>" % (self.sender_str, self.recevier_str, self.amount, self.nonce)
     def make_nonce(self):
         #Generate pseudo random no. 
         return random.getrandbits(32)

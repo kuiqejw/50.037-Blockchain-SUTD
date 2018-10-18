@@ -18,7 +18,7 @@ import sched
 TARGET = '00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
 #reduced the target to have two zeroes infront instead of 5 so finding the hash wouldn't take as long
 
-COINS_PER_BLOCK = 1 #reward is at 100 SUTD coins for each Mined Block
+COINS_PER_BLOCK = 100 #reward is at 100 SUTD coins for each Mined Block
 MINIMUM_HASH_DIFFICULTY =  2  #Number of zeroes infront of the target
 MAX_TRANS_PER_BLOCK = 3  #number of transactions per block
 class Miner(SPVClient):

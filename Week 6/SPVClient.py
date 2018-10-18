@@ -60,6 +60,7 @@ class SPVClient:
 		UTXO = Transaction(transaction.sender, transaction.receiver, transaction.amount, transaction.comment)
 		verify = UTXO.validate(transaction.signature, self.public_key)
 	def receive_bloc_header(self, blockchain):
+		self.block_header = []
 		for key, value in blockchain.chain.items():#traverse attribute chain, the dict in which blocks are stored
 			self.block_header.append(value.to_json())#to_json will only download all of the headers, not the actual block
 		return self.block_header

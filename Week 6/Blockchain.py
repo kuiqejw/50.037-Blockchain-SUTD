@@ -54,7 +54,7 @@ class Blockchain:
 		block.timestamp = time.time()
 		block.index = self.next_block_number()
 		block.compute_hash()
-		if self.blck_check2(block):
+		if not self.blck_check2(block):
 			return
 		self.chain[str(block.hash)] = block
 		if target_hash:
