@@ -4,8 +4,10 @@ import hashlib
 import time
 import random
 from MerkleTree import MerkleTree, Node
-
-
+MINIMUM_HASH_DIFFICULTY =  12 #1 zero = 6
+#So suppose this is the target. Any hash value should be lower than this
+max_nonce = 2 ** 32 # 4 billion
+used_nonce_lst = []
 class Block:
 
 	def __init__(self, past_transactions, verbose = False):
@@ -15,7 +17,7 @@ class Block:
 		self.previous_hash = None #Applied when inserted into chain
 		self.merkle_root = None #root of the hash tree
 		self.timestamp = time.time()#time stamp
-		self.nonce = self.make_nonce()# nonce 
+		self.nonce = self.proof_of_work()# nonce 
 		#past_transactions
 		self.past_transactions = past_transactions
 		self.past_transaction_hashes = []
@@ -90,10 +92,10 @@ class Block:
 		self.merkle_root = self.get_root()
 
 
-	@staticmethod
-	def make_nonce():
-		#Generate pseudo random no. 
-		return random.getrandbits(32)
+	# @staticmethod
+	# def make_nonce(): assigned to proof_of_work now
+	# 	#Generate pseudo random no. 
+	# 	return random.getrandbits(32)
 
 	def to_json(self):
         # Serializes object to JSON string
@@ -123,6 +125,20 @@ class Block:
 		self.previous = previous_hash
 	def get_root(self):
 		return self.tiered_node_list[-1].data
+
+	def proof_of_work(self):
+	# taken from Mastering Bitcoin's pseudocode by scharton at https://gist.github.com/scharton
+		difficulty_bits = MINIMUM_HASH_DIFFICULTY
+		# calculate the difficulty target
+		target = 2 ** (256-difficulty_bits)# Target moved here. 
+
+		for nonce in range(max_nonce):
+		    hash_result = hashlib.sha256(str(nonce).encode()).hexdigest()
+		    # check if this is a valid result, below the target
+		    if int(hash_result, 16) < target and nonce not in used_nonce_lst:
+		        used_nonce_lst.append(nonce)
+		        return (hash_result,nonce)
+
 	@staticmethod
 	def hash_is_valid(the_hash):
 		return the_hash<TARGET
@@ -158,6 +174,7 @@ class Block:
 		        hashlist.append([currnode.left.data, "l", self.check(currnode.left.data)])
 		return hashlist
 
+	
 	def header_string(self):
 		return str(self.index) + self.previous_hash + str(self.timestamp) + str(self.nonce)
 

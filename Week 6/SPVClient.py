@@ -64,10 +64,10 @@ class SPVClient:
 		for key, value in blockchain.chain.items():#traverse attribute chain, the dict in which blocks are stored
 			self.block_header.append(value.to_json())#to_json will only download all of the headers, not the actual block
 		return self.block_header
-	def check_if_in(self, block, transaction):
+	def check_if_in(self, block, transaction):#3) Get proof
 		#for the person to check that their transaction is in with an id. Returns boolean
 	    return verify_proof(transaction, block.get_proof(transaction), block.get_root())
-	def check_balance_of_pub(self, public_key, chain):
+	def check_balance_of_pub(self, public_key, chain): 
 		transactions_list = []
 		balance = 0
 		for v in chain.past_transactions:
@@ -78,6 +78,18 @@ class SPVClient:
 		        balance += v.amount
 		        transactions_list.append(v)
 		return balance
+	#2) Transactions sent or received by them
+	def grab_all_transactions(self, chain):
+		transactions_list = []
+		balance = 0
+		for v in chain.past_transactions:
+			if v.sender == self.public_key:
+				print('sender b')
+				transactions_list.append(v)
+			elif v.receiver == self.public_key:
+				transactions_list.append(v)
+				print('receiver b')
+		return transactions_list
 	def check_transaction_in_chain(self, transaction, chain):
 		i = transaction
 		if not hashlib.sha256(i.to_json().encode()).hexdigest() in chain.past_transactions_hashes:
@@ -86,7 +98,7 @@ class SPVClient:
 		    print('True','check_transact')
 
 	def check_previous_header(self):
-		#basically, check if it exists
+		#basically, check if it exists in self
 		previous_hash_list = ['genesis']
 		current_hash_list = []
 		for z in self.block_header:

@@ -47,23 +47,23 @@ def demo_spv():
     coin = Blockchain()
     coin.add(block1)
     time.sleep(0.2)
-    coin.add(block2)
+    coin.add(block2) #fail because reused
     time.sleep(0.2)
-    coin.add(block3, block1.hash)
+    coin.add(block3, block1.hash) #fail because reused transaction. 
     time.sleep(0.2)
     print(a.receive_bloc_header(coin))
     #This is assuming that the SPV Client knows where the block is
     a.check_if_in(block1,tx1)
-    # b.check_transaction_in_chain(tx1, coin)
+    b.check_transaction_in_chain(tx1, coin)
 #     #Go with proof that the transaction is in the blockchain (Done in Miner man)
-    # print(b.check_balance_of_pub(d.public_key, coin))
+    print(b.check_balance_of_pub(d.public_key, coin))
 #     #They ask for all transactions, associated with my public key
 #     #give me transactions if I'm sender or receiver. Returns 0 because as you can see, it's all bloody balanced out. No net loss
-    # print(b.check_previous_header(), 'Previous headers are all valid')
+    print(b.check_previous_header(), 'Previous headers are all valid')
 #     #Validates proof of work, and the previous header
 #     #Miner will give them prsent proof
 #     #SpV client, not storing all transactions, will validate that it's all in.
-# demo()      
+    print(b.grab_all_transactions(coin))
 def demo_miner():
     coin = Blockchain()
     b = Miner(coin, 'b')
@@ -149,7 +149,7 @@ def demo_miner2():
         prev_block = my_add(i, coin, blck)
         i.add_to_chain(blck, prev_block)
         
-    print(b.receive_bloc_header(coin))
+    print(b.verify_transaction_with_block(blck))
     
 # and that there is no double spending: Derive from past_transactions / transaction validation
 #after that is done, you can start adding it. 
@@ -160,12 +160,9 @@ def demo_miner2():
 #         else:
 #             print('True', i.comment)
 def my_add(miner, coin, blck):
-    lock = threading.Lock()
-    lock.acquire()
     prev_block = coin.resolve()
     blck.previous_hash = prev_block.hash
     blck.index = prev_block.index+1
-    lock.release()
     return prev_block
 def my_add1(miner,coin,transaction):
     print("%s started" %miner.node_id)
@@ -176,7 +173,7 @@ def my_add1(miner,coin,transaction):
     else:
         prev_block = my_add(miner, coin, blck)
         miner.add_to_chain(blck,prev_block)
-def my_add2(miner,coin,transaction):
+def my_add2(miner,coin,transaction,neighbors):
     print("%s started" %miner.node_id)
     blck = miner.broadcast(transaction)
     blck = miner.check_len()
@@ -185,6 +182,8 @@ def my_add2(miner,coin,transaction):
     else:
         prev_block = my_add(miner, coin, blck)
         miner.add_to_chain(blck,prev_block)
+        for i in neighbors:
+        i.remove_broadcast(blck.past_transactions)
         print('Who get the reward? ', miner.node_id,"what's his balance: ", miner.balance)
 def worker(miner,coin,transaction):
     print("%s started" %miner.node_id)
@@ -195,26 +194,28 @@ def worker(miner,coin,transaction):
     else: 
         print('blck have')
         return blck
-def worker2(miner, coin, blck):
+def worker2(miner, coin, blck,neighbors):
     prev_block = my_add(miner, coin, blck)
     miner.add_to_chain(blck,prev_block)
+    for i in neighbors:
+        i.remove_broadcast(blck.past_transactions)
     print("miner's balance: ",miner.node_id, miner.balance)
-def selfish_main(miner, coin, transaction, lst_kept=[]):
+    return
+def selfish_main(miner, coin, transaction,neighbors,lock):
     blck = worker(miner, coin, transaction)
-    lock = threading.Lock()
-    lock.acquire()
-    lst_kept.append(blck)
     print("%s started" %miner.node_id)
+    lock.acquire()
     if (miner.node_id == 'd' or miner.node_id == 'e' or miner.node_id == 'f'):
+        worker2(miner, coin,blck, neighbors)
+        print("%s finished" %miner.node_id)
+    else: #else: keep two blocks and release them later
+        lst_kept = [blck]
+        miner.remove_broadcast(blck.past_transactions)
+        blck2 = worker(miner,coin,transaction)
+        lst_kept.append(blck2)
         for i in lst_kept:
-            worker2(miner, coin,i)
-            print("%s finished" %miner.node_id)
-    else:#b and c are selfish, but have a probability of 0.4 to keep their blocks rather than firing into the system. 
-        decider = random.random()
-        if decider > 0.4:
-            for i in lst_kept:
-                worker2(miner, coin,i)
-                print("%s finished" %miner.node_id)
+            worker2(miner, coin,i,neighbors)
+        print("%s finished" %miner.node_id)
     lock.release()
 def simulation_attack():
     #51% attack:
@@ -290,78 +291,71 @@ def simulation_attack2():
     f = Miner(coin, 'f')
     a = SPVClient('a')
     g = SPVClient('g')
+    h = SPVClient('h')
+    i = SPVClient('i')
+    j = SPVClient('j')
+    k = SPVClient('k')
     #So five miners
-    people = [a,b,c,d,e,f,g]
+    people = [a,b,c,d,e,f,g, h, i ,j,k]
     for i in people:
         i.create_keys()
     tx = []
-    tx1 = Transaction(b.public_key,c.public_key,10,"one")
-    tx1.sign(b.private_key)
-    tx2 = Transaction(c.public_key,b.public_key,20,"two")
-    tx2.sign(c.private_key)
-    tx3 = Transaction(b.public_key,c.public_key,30,"three")
-    tx3.sign(b.private_key)
-    tx4 = Transaction(b.public_key,c.public_key,40,"four")
-    tx4.sign(b.private_key)
-    tx5 = Transaction(c.public_key,b.public_key,50,"five")
-    tx5.sign(c.private_key)
-    tx6 = Transaction(b.public_key,c.public_key,60,"six")
-    tx6.sign(b.private_key)
+    tx1 = Transaction(a.public_key,g.public_key,10,"one")
+    tx1.sign(a.private_key)
+    tx2 = Transaction(g.public_key,h.public_key,20,"two")
+    tx2.sign(g.private_key)
+    tx3 = Transaction(h.public_key,i.public_key,30,"three")
+    tx3.sign(h.private_key)
+    tx4 = Transaction(i.public_key,j.public_key,40,"four")
+    tx4.sign(i.private_key)
+    tx5 = Transaction(j.public_key,k.public_key,50,"five")
+    tx5.sign(j.private_key)
+    tx6 = Transaction(k.public_key,a.public_key,60,"six")
+    tx6.sign(k.private_key)
     #6 transactions
-    tx7 = Transaction(b.public_key,c.public_key,10,"seven")
-    tx7.sign(b.private_key)
-    tx8 = Transaction(c.public_key,b.public_key,20,"eight")
-    tx8.sign(c.private_key)
-    tx9 = Transaction(b.public_key,c.public_key,10,"nine")
-    tx9.sign(b.private_key)
-    tx10 = Transaction(b.public_key,c.public_key,20,"ten")
-    tx10.sign(b.private_key)
-    tx11 = Transaction(c.public_key,b.public_key,20,"eleven")
-    tx11.sign(c.private_key)
-    tx12 = Transaction(b.public_key,d.public_key,10,"twelve")
-    tx12.sign(b.private_key)
-    
-    for i in range(21):
-        amount = random.randint(1,101)
-        person = random.randint(1,6)
-        person2 = random.randint(1,6)
+    tx7 = Transaction(a.public_key,g.public_key,10,"seven")
+    tx7.sign(a.private_key)
+    tx8 = Transaction(g.public_key,h.public_key,20,"eight")
+    tx8.sign(g.private_key)
+    tx9 = Transaction(h.public_key,i.public_key,10,"nine")
+    tx9.sign(h.private_key)
+    tx10 = Transaction(i.public_key,j.public_key,20,"ten")
+    tx10.sign(i.private_key)
+    tx11 = Transaction(j.public_key,k.public_key,20,"eleven")
+    tx11.sign(j.private_key)
+    tx12 = Transaction(k.public_key,a.public_key,10,"twelve")
+    tx12.sign(k.private_key)
+    clients_list = [a,g,h,i,j,k]
+    for i in range(20):
+        amount = random.randint(1,1001)
+        person = random.randint(0,5)
+        person2 = random.randint(0,5)
         comment = str(time.time())
-        tx1 = Transaction(people[person].public_key,people[person2].public_key,amount,comment)
-        tx1.sign(people[person].private_key)
+        tx1 = Transaction(clients_list[person].public_key,clients_list[person2].public_key,amount,comment)
+        tx1.sign(clients_list[person].private_key)
         tx.append(tx1)
     tt = [tx1,tx2,tx3,tx4,tx5,tx6,tx7,tx8,tx9,tx10,tx11,tx12]
     tx.extend(tt)
-    #b does not want to show d's transaction, tx12
-    #Create a block by b
-    # random.shuffle(tx)
-    #create two threads, one for selfish, one for honest
-    #Each will take turns to run
-    #First thread for honest will run my_add1
-    #second thread for selfish will consist of two parts
-    #create block
-    #On some probability (or when greater than 2, add to chain)
     #b and c are selfish, d,e,f are honest so have a loop to decide
-    miners2 = [[b,tx], [c,tx],[d,tx],[e,tx],[f,tx]]
-    # executor = concurrent.futures.ProcessPoolExecutor(max_workers=5)
-    # wait_for = [executor.submit(selfish_main,i[0], coin, i[1],) for i in miners2]
-    # for f in concurrent.futures.as_completed(wait_for):
-        # print(f.result())
-        
-    #b and c are dishonest, while d,e,f are honest
-    # miners2 = [[b,transactions],[c,transactions2],[b,transactions3],[d,transactions4], [e, transactions5], [d, transactions6]]
-    # random.shuffle(miners2)
+    miners2 = [[b,tx], [c,tx], [d,tx],[e,tx],[f,tx]]
+    miners3 = [b,c,d,e,f]
+    for i in miners2:
+        random.shuffle(i[1])
+        i[0].broadcast(i[1])
     x = 0
-    while x < 20:
+    lock = threading.Lock()
+    while x < 4:
         x += 1
         for i in miners2:
             #Note that I tried a random.randint here, but did not get equal time as expected
-            t= threading.Thread(name='selfish_mining', target=selfish_main, args=(i[0],coin,i[1],))
+            t= threading.Thread(name='selfish_mining', target=selfish_main, args=(i[0],coin,i[1],miners3,lock,))
             t.start()
-            t.join(timeout=0.5)
-        print(len(coin.past_transactions))
-        for i in miners2:
-            print(i[0].node_id, i[0].balance)
-# lst_of_fn = [send_transaction, receive_transaction, verify_transaction, update_miners, verify_block ]
+            t.join(timeout=1)
+    print(coin.past_transactions)
+    for i in miners3:
+        print(i.node_id,  '  ::::::: ',i.balance, '\n')
+        print('list_transactions', len(i.trans_pool), '\n')
+
 def send_tx(sender, recipient, amount, comment): #sender and recipient are SPV Client members
     return sender.send_transaction(recipient.public_key, amount,comment)
 def receive_tx(receiver, transaction):
@@ -401,7 +395,7 @@ def scheduled_network():
             random.shuffle(miner_lst) #to give them an equal probability of getting the time needed to create and add a block
             for i in miner_lst:
                 #Note that I tried a random.randint here, but did not get equal time as expected
-                t= threading.Thread(name='honest_mining', target=my_add2, args=(i,coin,new_transaction,))
+                t= threading.Thread(name='honest_mining', target=my_add2, args=(i,coin,new_transaction,miner_lst,))
                 t.start()
                 t.join(timeout=0.5)
             print(len(coin.past_transactions))
@@ -445,9 +439,9 @@ def scheduled_network():
             
 
 if __name__ == '__main__':
-    scheduled_network()
+    # scheduled_network()
+    # demo_spv()
     # demo_miner2()
-
+    simulation_attack2()
     #final things left unimplemented:
     #SpV client: check for transactions by pulling about related transactions and building merkle tree
-    #preimage attack for the transaction class

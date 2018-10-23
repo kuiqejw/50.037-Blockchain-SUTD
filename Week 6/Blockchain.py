@@ -42,7 +42,7 @@ class Blockchain:
 	def blck_check2(self,blck):
 		for i in blck.past_transactions:
 		    if hashlib.sha256(i.to_json().encode()).hexdigest() in self.past_transactions_hashes:
-		        print('fail blck_chec2')
+		        print('Transaction has already existed in blockchain')
 		        return False
 		    else:
 		    	#basically, it passes the transaction not previously used
@@ -85,7 +85,7 @@ class Blockchain:
 			print(previous_block.index, block.index)
 			return False
 		elif block.timestamp <= previous_block.timestamp:
-			print('timestamp quest')
+			print('time stamp failed')
 			return False
 		return True
 	

@@ -14,13 +14,10 @@ from ecdsa import SigningKey
 import threading
 import time
 import sched
-#So suppose this is the target. Any hash value should be lower than this
-TARGET = '00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
 #reduced the target to have two zeroes infront instead of 5 so finding the hash wouldn't take as long
 
 COINS_PER_BLOCK = 100 #reward is at 100 SUTD coins for each Mined Block
-MINIMUM_HASH_DIFFICULTY =  2  #Number of zeroes infront of the target
-MAX_TRANS_PER_BLOCK = 3  #number of transactions per block
+MAX_TRANS_PER_BLOCK = 4#number of transactions per block
 class Miner(SPVClient):
 
     def __init__(self,blockchain, node_id):
@@ -97,6 +94,8 @@ class Miner(SPVClient):
         blck = Block(self.trans_pool)
         blck.build()
         return blck
+    def remove_broadcast(self, list_transactions):
+        self.trans_pool = [x for x in self.trans_pool if x not in list_transactions]
     def broadcast(self, list_transactions):
         self.trans_pool.extend(list_transactions)
     def check_len(self):
@@ -105,22 +104,6 @@ class Miner(SPVClient):
             self.trans_pool = self.trans_pool[:MAX_TRANS_PER_BLOCK]
             blck = self.create_blck()
             self.trans_pool = saved_lst
-            return blck
-    def update_miners(self, list_transactions): #Note that transactions is type (transactions, not bytes!)
-        len_of_trans_pool = len(self.trans_pool)
-        len_of_added_transactions = len(list_transactions)
-        if (len_of_trans_pool + len_of_added_transactions) < MAX_TRANS_PER_BLOCK:
-            self.trans_pool.extend(list_transactions)
-            return None
-        else: #That means length of transaction pool and length of added transactions >= max_trans block and add individually
-            #Create a new block and send remaining to the trans_pool
-            length_added = MAX_TRANS_PER_BLOCK - len_of_trans_pool
-            for i in range(length_added):
-                a = list_transactions.pop(0)
-                self.trans_pool.append(a)
-            blck = self.create_blck()
-            self.trans_pool = list_transactions
-            #create a block
             return blck
     def proof_of_work(self,blck, maxinput = 16):
         """
@@ -145,6 +128,3 @@ class Miner(SPVClient):
                 transactions_list.append(v)
         return balance
     
-# simulation_attack()
-# simulation_attack2()
-# scheduled_network()
