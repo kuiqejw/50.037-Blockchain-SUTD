@@ -48,3 +48,6 @@ Humbly thinks that should have made peer validation requested upon reward for mi
 As seen in the marking scheme above, SPV does not validate the merkle tree in their blockheader. The above comment is with regards to Global UTXO/addr:balance + balance for checking TX. This can be done via storing a balance of the public key and checking by the miner if the transaction gets issued. :__( Plus a call for Peer Validation)
 
 Big Project is stored under https://github.com/kuiqejw/Auction-Dapp-Solidity
+
+Notes for the unlucky fellow: 
+.onepkg file for OneNote students, pdf eitherwise. I'll recommend using OneNote to read it, pdf is only because I don't intend to subscribe thereafter. 
